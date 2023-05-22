@@ -33,6 +33,13 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView rvResults;
     private SearchResultsAdapter adapter;
 
+    private String addr = "10.0.2.2";
+    private String port = "9011";
+
+    private String backendUrl() {
+        return "http://"+addr+":"+port;
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         rvResults.setAdapter(adapter);
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://localhost" + ":9011")
+                .baseUrl(backendUrl())
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         SearchService service = retrofit.create(SearchService.class);
