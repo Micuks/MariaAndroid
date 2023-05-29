@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.wql_2020211597.mariaandroid.models.Document;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
 import com.wql_2020211597.mariaandroid.searchservice.SearchService;
@@ -77,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
                                        Response<List<SearchResult>> response) {
                     if (response.isSuccessful()) {
                         List<SearchResult> results = response.body();
-                        Log.d(TAG, "Got " + results.size() + " results: "+results.toString());
+                        Log.d(TAG,
+                                "Got " + results.size() + " results: " + results.toString());
                         // Update the adapter with the search results
                         adapter.updateResults(results);
                     } else {
@@ -137,10 +140,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class SearchResultsViewHolder extends RecyclerView.ViewHolder {
+        ImageView thumbnail;
         TextView tvTitle, tvContent, tvUrl, tvDate, tvScore;
 
         SearchResultsViewHolder(@NonNull View itemView) {
             super(itemView);
+            thumbnail = itemView.findViewById(R.id.thumbnail);
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvContent = itemView.findViewById(R.id.tvContent);
             tvUrl = itemView.findViewById(R.id.tvUrl);
@@ -151,10 +156,18 @@ public class MainActivity extends AppCompatActivity {
         void bind(SearchResult result) {
             Document doc = result.getDoc();
             if (doc != null) {
+//                Glide
+//                        .with(itemView)
+//                        .load(doc.getUrl())
+//                        .centerCrop()
+//                        .placeholder(R.drawable.placeholder)
+//                        .into(thumbnail);
                 Log.d(TAG,
                         "Binding document to ViewHolder, Title: " + doc.getTitle());
-                tvTitle.setText(Html.fromHtml(doc.getTitle(),Html.FROM_HTML_MODE_COMPACT));
-                tvContent.setText(Html.fromHtml(doc.getContent(), Html.FROM_HTML_MODE_COMPACT));
+                tvTitle.setText(Html.fromHtml(doc.getTitle(),
+                        Html.FROM_HTML_MODE_COMPACT));
+                tvContent.setText(Html.fromHtml(doc.getContent(),
+                        Html.FROM_HTML_MODE_COMPACT));
                 tvUrl.setText(doc.getUrl());
                 tvDate.setText(doc.getDate());
                 tvScore.setText(String.valueOf(result.getScore()));
