@@ -1,9 +1,13 @@
 package com.wql_2020211597.mariaandroid.models;
 
-import com.wql_2020211597.mariaandroid.models.Document;
+import androidx.annotation.NonNull;
+
+import com.google.gson.annotations.SerializedName;
 
 public class SearchResult {
+    @SerializedName("Score")
     private double score;
+    @SerializedName("Doc")
     private Document doc;
 
     public double getScore() {
@@ -22,4 +26,9 @@ public class SearchResult {
         this.doc = doc;
     }
 
+    @NonNull
+    @Override
+    public String toString() {
+        return "SearchResult{" + "doc=" + doc + ", score=" + score + '}';
+    }
 }

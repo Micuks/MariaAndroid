@@ -10,5 +10,5 @@ import retrofit2.http.Query;
 
 public interface SearchService {
     @GET("/search")
-    Call<List<SearchResult>> search(@Query("q") String query);
+    Call<List<SearchResult>> search(@Query("q") String query, @Query("page") String page);
 }

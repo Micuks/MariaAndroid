@@ -1,6 +1,8 @@
 package com.wql_2020211597.mariaandroid;
 
 import android.os.Bundle;
+import android.text.Html;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,16 +30,17 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
     private EditText etSearch;
     private Button btnSearch;
     private RecyclerView rvResults;
     private SearchResultsAdapter adapter;
 
-    private String addr = "10.0.2.2";
-    private String port = "9011";
+    static private final String addr = "10.128.170.37";
+    static private final String port = "9011";
 
     private String backendUrl() {
-        return "http://"+addr+":"+port;
+        return "http://" + addr + ":" + port;
     }
 
     @Override
@@ -50,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
         rvResults = findViewById(R.id.rvResults);
 
         // Initialize the RecyclerView with an empty adapter
+        Log.d(TAG, "Initial RecyclerView and Adapter setup");
+
         adapter = new SearchResultsAdapter(new ArrayList<>());
         rvResults.setLayoutManager(new LinearLayoutManager(this));
         rvResults.setAdapter(adapter);
@@ -62,7 +67,9 @@ public class MainActivity extends AppCompatActivity {
 
         btnSearch.setOnClickListener(v -> {
             String query = etSearch.getText().toString();
-            Call<List<SearchResult>> call = service.search(query);
+            String page = "1"; // FIXME: Adaptive page number
+            Log.d(TAG, "query: " + query + ", page: " + page);
+            Call<List<SearchResult>> call = service.search(query, page);
 
             call.enqueue(new Callback<List<SearchResult>>() {
                 @Override
@@ -70,17 +77,21 @@ public class MainActivity extends AppCompatActivity {
                                        Response<List<SearchResult>> response) {
                     if (response.isSuccessful()) {
                         List<SearchResult> results = response.body();
+                        Log.d(TAG, "Got " + results.size() + " results: "+results.toString());
                         // Update the adapter with the search results
                         adapter.updateResults(results);
                     } else {
                         // Handle error
+                        Log.e(TAG,
+                                "Failed to fetch response, status code: " + response.code());
+                        Log.e(TAG, "Error message: " + response.message());
                     }
                 }
 
                 @Override
                 public void onFailure(Call<List<SearchResult>> call,
                                       Throwable t) {
-                    // Handle failure
+                    Log.e(TAG, "Search request failed", t);
                 }
             });
         });
@@ -91,16 +102,21 @@ public class MainActivity extends AppCompatActivity {
 
         SearchResultsAdapter(List<SearchResult> results) {
             this.results = results;
+            Log.d(TAG,
+                    "SearchResultsAdapter initialized with " + results.size() + " results");
         }
 
         void updateResults(List<SearchResult> results) {
             this.results = results;
+            Log.d(TAG,
+                    "Adapter results updated, new results count: " + results.size());
             notifyDataSetChanged();
         }
 
         @NonNull
         @Override
         public SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            Log.d(TAG, "onCreateViewHolder called, viewType: " + viewType);
             View view = LayoutInflater
                     .from(parent.getContext())
                     .inflate(R.layout.item_result, parent, false);
@@ -110,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull SearchResultsViewHolder holder,
                                      int position) {
+            Log.d(TAG, "onBindViewHolder called, position: " + position);
             holder.bind(results.get(position));
         }
 
@@ -133,11 +150,18 @@ public class MainActivity extends AppCompatActivity {
 
         void bind(SearchResult result) {
             Document doc = result.getDoc();
-            tvTitle.setText(doc.getTitle());
-            tvContent.setText(doc.getContent());
-            tvUrl.setText(doc.getUrl());
-            tvDate.setText(doc.getDate());
-            tvScore.setText(String.valueOf(result.getScore()));
+            if (doc != null) {
+                Log.d(TAG,
+                        "Binding document to ViewHolder, Title: " + doc.getTitle());
+                tvTitle.setText(Html.fromHtml(doc.getTitle(),Html.FROM_HTML_MODE_COMPACT));
+                tvContent.setText(Html.fromHtml(doc.getContent(), Html.FROM_HTML_MODE_COMPACT));
+                tvUrl.setText(doc.getUrl());
+                tvDate.setText(doc.getDate());
+                tvScore.setText(String.valueOf(result.getScore()));
+            } else {
+                Log.e(TAG,
+                        "Received null document in result: " + result.toString());
+            }
         }
     }
 }
