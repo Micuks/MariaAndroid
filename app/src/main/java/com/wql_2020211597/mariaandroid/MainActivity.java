@@ -1,5 +1,6 @@
 package com.wql_2020211597.mariaandroid;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -17,7 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
+import com.wql_2020211597.mariaandroid.config.Config;
 import com.wql_2020211597.mariaandroid.models.Document;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
 import com.wql_2020211597.mariaandroid.searchservice.SearchService;
@@ -38,11 +39,11 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView rvResults;
     private SearchResultsAdapter adapter;
 
-    static private final String addr = "10.128.170.37";
-    static private final String port = "9011";
+    static private final String addr = Config.getBackendAddr();
+    static private final String port = Config.getBackendPort();
 
     private String backendUrl() {
-        return "http://" + addr + ":" + port;
+        return Config.getBackendUrl();
     }
 
     @Override
@@ -145,7 +146,6 @@ public class MainActivity extends AppCompatActivity {
 
         SearchResultsViewHolder(@NonNull View itemView) {
             super(itemView);
-            thumbnail = itemView.findViewById(R.id.thumbnail);
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvContent = itemView.findViewById(R.id.tvContent);
             tvUrl = itemView.findViewById(R.id.tvUrl);
@@ -156,12 +156,6 @@ public class MainActivity extends AppCompatActivity {
         void bind(SearchResult result) {
             Document doc = result.getDoc();
             if (doc != null) {
-//                Glide
-//                        .with(itemView)
-//                        .load(doc.getUrl())
-//                        .centerCrop()
-//                        .placeholder(R.drawable.placeholder)
-//                        .into(thumbnail);
                 Log.d(TAG,
                         "Binding document to ViewHolder, Title: " + doc.getTitle());
                 tvTitle.setText(Html.fromHtml(doc.getTitle(),
@@ -171,6 +165,13 @@ public class MainActivity extends AppCompatActivity {
                 tvUrl.setText(doc.getUrl());
                 tvDate.setText(doc.getDate());
                 tvScore.setText(String.valueOf(result.getScore()));
+
+                tvTitle.setOnClickListener(v->{
+                    Intent intent=new Intent(v.getContext(), DetailActivity.class);
+                    Log.d(TAG, "Doc to be fetched's id: "+result.getId());
+                    intent.putExtra("docId", result.getId());
+                    v.getContext().startActivity(intent);
+                });
             } else {
                 Log.e(TAG,
                         "Received null document in result: " + result.toString());

@@ -9,6 +9,12 @@ public class SearchResult {
     private double score;
     @SerializedName("Doc")
     private Document doc;
+    public String getId() {
+        return doc.getId();
+    }
+    public void setId(String id) {
+        doc.setId(id);
+    }
 
     public double getScore() {
         return score;

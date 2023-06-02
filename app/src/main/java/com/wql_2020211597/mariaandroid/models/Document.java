@@ -1,10 +1,17 @@
 package com.wql_2020211597.mariaandroid.models;
 
+import com.google.gson.annotations.SerializedName;
+
 public class Document {
+    @SerializedName("id")
     private String id;
+    @SerializedName("title")
     private String title;
+    @SerializedName("content")
     private String content;
+    @SerializedName("url")
     private String url;
+    @SerializedName("date")
     private String date;
 
     public String getId() {
