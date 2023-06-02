@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -18,8 +19,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 import com.wql_2020211597.mariaandroid.config.Config;
+import com.wql_2020211597.mariaandroid.history.HistoryStorage;
 import com.wql_2020211597.mariaandroid.models.Document;
+import com.wql_2020211597.mariaandroid.models.HistoryEntry;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
 import com.wql_2020211597.mariaandroid.searchservice.SearchService;
 
@@ -34,6 +39,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private HistoryStorage historyStorage;
     private EditText etSearch;
     private Button btnSearch;
     private RecyclerView rvResults;
@@ -50,6 +56,32 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Load HistoryStorage
+        historyStorage=HistoryStorage.getInstance(this);
+
+        // Bottom navigation bar
+        BottomNavigationView navigation = findViewById(R.id.bottom_navigation);
+        navigation.setOnItemSelectedListener(
+                new NavigationBarView.OnItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                        if (item.getItemId() == R.id.navigation_home) {
+                            Intent homeIntent = new Intent(
+                                    getApplicationContext(),
+                                    MainActivity.class);
+                            startActivity(homeIntent);
+                            return true;
+                        } else if (item.getItemId() == R.id.navigation_settings) {
+                            Intent settingsIntent = new Intent(
+                                    getApplicationContext(),
+                                    SettingsActivity.class);
+                            startActivity(settingsIntent);
+                            return true;
+                        }
+                        return false;
+                    }
+                });
 
         etSearch = findViewById(R.id.etSearch);
         btnSearch = findViewById(R.id.btnSearch);
@@ -82,8 +114,14 @@ public class MainActivity extends AppCompatActivity {
                         List<SearchResult> results = response.body();
                         Log.d(TAG,
                                 "Got " + results.size() + " results: " + results.toString());
+
+                        // Save search to history
+                        historyStorage.add(
+                                new HistoryEntry(query));
+
                         // Update the adapter with the search results
                         adapter.updateResults(results);
+
                     } else {
                         // Handle error
                         Log.e(TAG,
@@ -166,10 +204,15 @@ public class MainActivity extends AppCompatActivity {
                 tvDate.setText(doc.getDate());
                 tvScore.setText(String.valueOf(result.getScore()));
 
-                tvTitle.setOnClickListener(v->{
-                    Intent intent=new Intent(v.getContext(), DetailActivity.class);
-                    Log.d(TAG, "Doc to be fetched's id: "+result.getId());
+                tvTitle.setOnClickListener(v -> {
+                    Intent intent = new Intent(v.getContext(),
+                            DetailActivity.class);
+                    Log.d(TAG, "Doc to be fetched's id: " + result.getId());
                     intent.putExtra("docId", result.getId());
+                    intent.putExtra("docTitle", Html
+                            .fromHtml(result.getDoc().getTitle(),
+                                    Html.FROM_HTML_MODE_COMPACT)
+                            .toString());
                     v.getContext().startActivity(intent);
                 });
             } else {
