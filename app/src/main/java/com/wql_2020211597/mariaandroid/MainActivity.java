@@ -16,6 +16,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,6 +31,7 @@ import com.wql_2020211597.mariaandroid.searchservice.SearchService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -58,167 +60,43 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Load HistoryStorage
-        historyStorage=HistoryStorage.getInstance(this);
+        historyStorage = HistoryStorage.getInstance(this);
 
         // Bottom navigation bar
         BottomNavigationView navigation = findViewById(R.id.bottom_navigation);
-        navigation.setOnItemSelectedListener(
-                new NavigationBarView.OnItemSelectedListener() {
-                    @Override
-                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                        if (item.getItemId() == R.id.navigation_home) {
-                            Intent homeIntent = new Intent(
-                                    getApplicationContext(),
-                                    MainActivity.class);
-                            startActivity(homeIntent);
-                            return true;
-                        } else if (item.getItemId() == R.id.navigation_settings) {
-                            Intent settingsIntent = new Intent(
-                                    getApplicationContext(),
-                                    SettingsActivity.class);
-                            startActivity(settingsIntent);
-                            return true;
-                        }
-                        return false;
-                    }
-                });
+        navigation.setOnItemSelectedListener(onItemSelectedListener);
 
-        etSearch = findViewById(R.id.etSearch);
-        btnSearch = findViewById(R.id.btnSearch);
-        rvResults = findViewById(R.id.rvResults);
-
-        // Initialize the RecyclerView with an empty adapter
-        Log.d(TAG, "Initial RecyclerView and Adapter setup");
-
-        adapter = new SearchResultsAdapter(new ArrayList<>());
-        rvResults.setLayoutManager(new LinearLayoutManager(this));
-        rvResults.setAdapter(adapter);
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(backendUrl())
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        SearchService service = retrofit.create(SearchService.class);
-
-        btnSearch.setOnClickListener(v -> {
-            String query = etSearch.getText().toString();
-            String page = "1"; // FIXME: Adaptive page number
-            Log.d(TAG, "query: " + query + ", page: " + page);
-            Call<List<SearchResult>> call = service.search(query, page);
-
-            call.enqueue(new Callback<List<SearchResult>>() {
-                @Override
-                public void onResponse(Call<List<SearchResult>> call,
-                                       Response<List<SearchResult>> response) {
-                    if (response.isSuccessful()) {
-                        List<SearchResult> results = response.body();
-                        Log.d(TAG,
-                                "Got " + results.size() + " results: " + results.toString());
-
-                        // Save search to history
-                        historyStorage.add(
-                                new HistoryEntry(query));
-
-                        // Update the adapter with the search results
-                        adapter.updateResults(results);
-
-                    } else {
-                        // Handle error
-                        Log.e(TAG,
-                                "Failed to fetch response, status code: " + response.code());
-                        Log.e(TAG, "Error message: " + response.message());
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<List<SearchResult>> call,
-                                      Throwable t) {
-                    Log.e(TAG, "Search request failed", t);
-                }
-            });
-        });
+        // Load the default fragment when activity is created
+        loadFragment(new HomeFragment());
     }
 
-    private class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsViewHolder> {
-        private List<SearchResult> results;
-
-        SearchResultsAdapter(List<SearchResult> results) {
-            this.results = results;
-            Log.d(TAG,
-                    "SearchResultsAdapter initialized with " + results.size() + " results");
-        }
-
-        void updateResults(List<SearchResult> results) {
-            this.results = results;
-            Log.d(TAG,
-                    "Adapter results updated, new results count: " + results.size());
-            notifyDataSetChanged();
-        }
-
-        @NonNull
+    private NavigationBarView.OnItemSelectedListener onItemSelectedListener =
+            new NavigationBarView.OnItemSelectedListener() {
         @Override
-        public SearchResultsViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            Log.d(TAG, "onCreateViewHolder called, viewType: " + viewType);
-            View view = LayoutInflater
-                    .from(parent.getContext())
-                    .inflate(R.layout.item_result, parent, false);
-            return new SearchResultsViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull SearchResultsViewHolder holder,
-                                     int position) {
-            Log.d(TAG, "onBindViewHolder called, position: " + position);
-            holder.bind(results.get(position));
-        }
-
-        @Override
-        public int getItemCount() {
-            return results.size();
-        }
-    }
-
-    private class SearchResultsViewHolder extends RecyclerView.ViewHolder {
-        ImageView thumbnail;
-        TextView tvTitle, tvContent, tvUrl, tvDate, tvScore;
-
-        SearchResultsViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvTitle = itemView.findViewById(R.id.tvTitle);
-            tvContent = itemView.findViewById(R.id.tvContent);
-            tvUrl = itemView.findViewById(R.id.tvUrl);
-            tvDate = itemView.findViewById(R.id.tvDate);
-            tvScore = itemView.findViewById(R.id.tvScore);
-        }
-
-        void bind(SearchResult result) {
-            Document doc = result.getDoc();
-            if (doc != null) {
-                Log.d(TAG,
-                        "Binding document to ViewHolder, Title: " + doc.getTitle());
-                tvTitle.setText(Html.fromHtml(doc.getTitle(),
-                        Html.FROM_HTML_MODE_COMPACT));
-                tvContent.setText(Html.fromHtml(doc.getContent(),
-                        Html.FROM_HTML_MODE_COMPACT));
-                tvUrl.setText(doc.getUrl());
-                tvDate.setText(doc.getDate());
-                tvScore.setText(String.valueOf(result.getScore()));
-
-                tvTitle.setOnClickListener(v -> {
-                    Intent intent = new Intent(v.getContext(),
-                            DetailActivity.class);
-                    Log.d(TAG, "Doc to be fetched's id: " + result.getId());
-                    intent.putExtra("docId", result.getId());
-                    intent.putExtra("docTitle", Html
-                            .fromHtml(result.getDoc().getTitle(),
-                                    Html.FROM_HTML_MODE_COMPACT)
-                            .toString());
-                    v.getContext().startActivity(intent);
-                });
+        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+            Fragment fragment;
+            if (item.getItemId() == R.id.navigation_home) {
+                fragment = new HomeFragment();
+            } else if (item.getItemId() == R.id.navigation_settings) {
+                fragment = new SettingsFragment();
             } else {
-                Log.e(TAG,
-                        "Received null document in result: " + result.toString());
+                return false;
             }
+            return loadFragment(fragment);
         }
+    };
+
+
+    private boolean loadFragment(Fragment fragment) {
+        // Switching fragment
+        if (fragment != null) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, fragment)
+                    .commit();
+            return true;
+        }
+        return false;
     }
+
 }
