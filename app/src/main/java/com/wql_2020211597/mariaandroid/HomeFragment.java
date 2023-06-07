@@ -13,7 +13,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.wql_2020211597.mariaandroid.config.Config;
@@ -23,9 +22,6 @@ import com.wql_2020211597.mariaandroid.models.HistoryEntry;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
 import com.wql_2020211597.mariaandroid.searchservice.SearchService;
 
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -53,7 +49,7 @@ public class HomeFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @androidx.annotation.Nullable ViewGroup container, @androidx.annotation.Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_main, container, false);
+        View view = inflater.inflate(R.layout.fragment_home, container, false);
 
         // Load HistoryStorage
         historyStorage = HistoryStorage.getInstance(getContext());
@@ -193,7 +189,7 @@ public class HomeFragment extends Fragment {
 
                 tvTitle.setOnClickListener(v -> {
                     Intent intent = new Intent(v.getContext(),
-                            DetailActivity.class);
+                            DetailFragment.class);
                     Log.d(TAG, "Doc to be fetched's id: " + result.getId());
                     intent.putExtra("docId", result.getId());
                     intent.putExtra("docTitle", Html
