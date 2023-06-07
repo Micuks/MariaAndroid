@@ -1,12 +1,14 @@
 package com.wql_2020211597.mariaandroid;
 
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
@@ -36,23 +38,32 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
     private NavigationBarView.OnItemSelectedListener onItemSelectedListener =
             new NavigationBarView.OnItemSelectedListener() {
                 @Override
                 public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                    Fragment fragment;
-                    if (item.getItemId() == R.id.navigation_home && !(currentFragment instanceof HomeFragment)) {
-                        fragment = new HomeFragment();
-                    } else if (item.getItemId() == R.id.navigation_settings && !(currentFragment instanceof HistoryFragment)) {
-                        fragment = new HistoryFragment();
-                    } else {
-                        return false;
-                    }
-
-                    return loadFragment(fragment);
+                    return loadFragmentController(item);
                 }
             };
 
+    private boolean loadFragmentController(@NonNull MenuItem item) {
+        Fragment fragment;
+        if (item.getItemId() == R.id.navigation_home && !(currentFragment instanceof HomeFragment)) {
+            fragment = new HomeFragment();
+        } else if (item.getItemId() == R.id.navigation_history && !(currentFragment instanceof HistoryFragment)) {
+            fragment = new HistoryFragment();
+        } else {
+            return false;
+        }
+
+        return loadFragment(fragment);
+    }
 
     private boolean loadFragment(Fragment fragment) {
         // Switching fragment
@@ -60,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
             getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
+                    .addToBackStack(null)
                     .commit();
             currentFragment = fragment;
             return true;
@@ -69,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (loadFragmentController(item)) {
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 }

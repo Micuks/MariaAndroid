@@ -12,10 +12,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -27,6 +30,7 @@ import com.wql_2020211597.mariaandroid.models.Document;
 import com.wql_2020211597.mariaandroid.models.HistoryEntry;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
 import com.wql_2020211597.mariaandroid.searchservice.SearchService;
+import com.wql_2020211597.mariaandroid.viewmodels.HomeViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +50,7 @@ public class HomeFragment extends Fragment {
     private Button btnSearch;
     private RecyclerView rvResults;
     private SearchResultsAdapter adapter;
+    private HomeViewModel homeViewModel;
 
     private String GetBackendUrl() {
         SharedPreferences sharedPref =
@@ -61,6 +66,13 @@ public class HomeFragment extends Fragment {
             Log.e(TAG, "backend url is " + val);
             return (String) Config.getBackendUrl();
         }
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Get home view model, which saves search result status
+        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
     }
 
     @androidx.annotation.Nullable
@@ -96,13 +108,27 @@ public class HomeFragment extends Fragment {
         btnSearch = view.findViewById(R.id.btnSearch);
 
         // Initialize adapter
-        adapter = new SearchResultsAdapter(new ArrayList<>());
+        adapter =
+                new SearchResultsAdapter(homeViewModel
+                        .getResults()
+                        .getValue() != null ? homeViewModel
+                        .getResults()
+                        .getValue() : new ArrayList<>());
 
         // Initialize RecyclerView
         rvResults = view.findViewById(R.id.rvResults);
         rvResults.setLayoutManager(new LinearLayoutManager(getContext()));
         rvResults.setAdapter(adapter); // Bind adapter
 
+        homeViewModel.getResults().observe(getViewLifecycleOwner(),
+                new Observer<List<SearchResult>>() {
+                    @Override
+                    public void onChanged(List<SearchResult> results) {
+                        adapter.updateResults(results);
+                    }
+                });
+
+        // Network communication related
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(GetBackendUrl())
                 .addConverterFactory(GsonConverterFactory.create())
@@ -152,6 +178,10 @@ public class HomeFragment extends Fragment {
 
                 // Update the adapter with the search results
                 adapter.updateResults(results);
+
+                // Update search results in view model
+                homeViewModel.setResults(results);
+
             } else {
                 // Handle error
                 Log.e(TAG, String.format(

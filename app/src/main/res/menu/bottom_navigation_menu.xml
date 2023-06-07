@@ -6,7 +6,7 @@
         android:title="@string/home" />
 
     <item
-        android:id="@+id/navigation_settings"
+        android:id="@+id/navigation_history"
         android:icon="@drawable/baseline_history_24"
         android:title="@string/history" />
 </menu>
