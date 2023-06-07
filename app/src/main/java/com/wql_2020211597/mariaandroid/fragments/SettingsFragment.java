@@ -1,10 +1,7 @@
-package com.wql_2020211597.mariaandroid;
+package com.wql_2020211597.mariaandroid.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -15,10 +12,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationBarView;
+import com.wql_2020211597.mariaandroid.R;
 import com.wql_2020211597.mariaandroid.history.HistoryStorage;
 import com.wql_2020211597.mariaandroid.models.HistoryEntry;
 
@@ -36,6 +31,16 @@ public class SettingsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_settings, container,
                 false);
 
+        Toolbar toolbar = view.findViewById(R.id.settingsToolbar);
+        ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
+        ((AppCompatActivity) getActivity())
+                .getSupportActionBar()
+                .setDisplayHomeAsUpEnabled(true);
+        ((AppCompatActivity) getActivity())
+                .getSupportActionBar()
+                .setDisplayShowHomeEnabled(true);
+
+
         // History list
         ListView historyListView = view.findViewById(R.id.historyListView);
         historyStorage = HistoryStorage.getInstance(getContext());
@@ -47,10 +52,6 @@ public class SettingsFragment extends Fragment {
 
         historyListView.setAdapter(adapter);
 
-        requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(android.R.id.content, new SettingsFragment())
-                .commit();
         return view;
     }
 }

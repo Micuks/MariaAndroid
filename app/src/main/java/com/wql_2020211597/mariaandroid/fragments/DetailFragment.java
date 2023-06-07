@@ -1,4 +1,4 @@
-package com.wql_2020211597.mariaandroid;
+package com.wql_2020211597.mariaandroid.fragments;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -14,6 +14,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 
 import com.google.gson.Gson;
+import com.wql_2020211597.mariaandroid.R;
 import com.wql_2020211597.mariaandroid.config.Config;
 import com.wql_2020211597.mariaandroid.models.Document;
 import com.wql_2020211597.mariaandroid.searchservice.DocumentService;
@@ -48,7 +49,9 @@ public class DetailFragment extends Fragment {
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ((AppCompatActivity) getActivity()).getSupportFragmentManager().popBackStack();
+                ((AppCompatActivity) getActivity())
+                        .getSupportFragmentManager()
+                        .popBackStack();
             }
         });
 
@@ -57,6 +60,7 @@ public class DetailFragment extends Fragment {
 
         String resultId = getArguments().getString("docId");
         String title = getArguments().getString("docTitle");
+
         ((AppCompatActivity) getActivity())
                 .getSupportActionBar()
                 .setTitle(title);
@@ -71,8 +75,7 @@ public class DetailFragment extends Fragment {
         // Create Retrofit instance and API service
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(Config.getBackendUrl())
-                .addConverterFactory(
-                        GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create())
                 .build();
         DocumentService service = retrofit.create(DocumentService.class);
         Call<Document> call = service.getDocument(id);

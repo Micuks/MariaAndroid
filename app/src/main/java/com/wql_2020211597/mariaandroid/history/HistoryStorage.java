@@ -57,6 +57,12 @@ public class HistoryStorage {
     public ArrayList<HistoryEntry> loadHistory() {
         ArrayList<HistoryEntry> history = new ArrayList<>();
         try {
+            File file = new File(context.getFilesDir(), FILENAME);
+            if (!file.exists()) {
+                file.createNewFile();
+                return history;
+            }
+
             FileInputStream fis = context.openFileInput(FILENAME);
             byte[] bytes = new byte[(int) new File(FILENAME).length()];
             fis.read(bytes);

@@ -1,4 +1,4 @@
-package com.wql_2020211597.mariaandroid;
+package com.wql_2020211597.mariaandroid.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,9 +12,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.wql_2020211597.mariaandroid.R;
 import com.wql_2020211597.mariaandroid.config.Config;
 import com.wql_2020211597.mariaandroid.history.HistoryStorage;
 import com.wql_2020211597.mariaandroid.models.Document;
@@ -22,6 +27,7 @@ import com.wql_2020211597.mariaandroid.models.HistoryEntry;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
 import com.wql_2020211597.mariaandroid.searchservice.SearchService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -31,15 +37,12 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class HomeFragment extends Fragment {
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "HomeFragment";
     private HistoryStorage historyStorage;
     private EditText etSearch;
     private Button btnSearch;
     private RecyclerView rvResults;
     private SearchResultsAdapter adapter;
-
-    static private final String addr = Config.getBackendAddr();
-    static private final String port = Config.getBackendPort();
 
     private String GetBackendUrl() {
         return Config.getBackendUrl();
@@ -51,12 +54,39 @@ public class HomeFragment extends Fragment {
                              @androidx.annotation.Nullable ViewGroup container, @androidx.annotation.Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
+        Toolbar toolbar = view.findViewById(R.id.homeToolbar);
+        ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
+
+        // Hide the back button
+        if (((AppCompatActivity) getActivity()).getSupportActionBar() != null) {
+            ((AppCompatActivity) getActivity())
+                    .getSupportActionBar()
+                    .setDisplayHomeAsUpEnabled(false);
+            ((AppCompatActivity) getActivity())
+                    .getSupportActionBar()
+                    .setDisplayShowHomeEnabled(false);
+        }
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getActivity().getSupportFragmentManager().popBackStack();
+            }
+        });
+
         // Load HistoryStorage
         historyStorage = HistoryStorage.getInstance(getContext());
 
+        // Initlalize search zone
         etSearch = view.findViewById(R.id.etSearch);
         btnSearch = view.findViewById(R.id.btnSearch);
+
+        // Initialize adapter
+        adapter = new SearchResultsAdapter(new ArrayList<>());
+
+        // Initialize RecyclerView
         rvResults = view.findViewById(R.id.rvResults);
+        rvResults.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvResults.setAdapter(adapter); // Bind adapter
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(GetBackendUrl())
@@ -80,7 +110,7 @@ public class HomeFragment extends Fragment {
         public void onClick(View v) {
             String query = etSearch.getText().toString();
             String page = "1"; // FIXME: adaptive page number
-            Log.d(TAG, String.format("Query[%s], Page[%d]", query, page));
+            Log.d(TAG, String.format("Query[%s], Page[%s]", query, page));
             Call<List<SearchResult>> call = service.search(query, page);
 
             call.enqueue(new SearchCallback(query));
@@ -110,7 +140,7 @@ public class HomeFragment extends Fragment {
             } else {
                 // Handle error
                 Log.e(TAG, String.format(
-                                "Failed to fetch response, status code[%d]",
+                        "Failed to fetch response, status code[%d]",
                         response.code()));
                 Log.e(TAG,
                         String.format("Error message: %s", response.message()));
@@ -188,15 +218,28 @@ public class HomeFragment extends Fragment {
                 tvScore.setText(String.valueOf(result.getScore()));
 
                 tvTitle.setOnClickListener(v -> {
-                    Intent intent = new Intent(v.getContext(),
-                            DetailFragment.class);
-                    Log.d(TAG, "Doc to be fetched's id: " + result.getId());
-                    intent.putExtra("docId", result.getId());
-                    intent.putExtra("docTitle", Html
+                    DetailFragment detailFragment = new DetailFragment();
+
+                    // Pass data using Bundle
+                    Bundle bundle = new Bundle();
+                    bundle.putString("docId", result.getId());
+                    bundle.putString("docTitle", Html
                             .fromHtml(result.getDoc().getTitle(),
                                     Html.FROM_HTML_MODE_COMPACT)
                             .toString());
-                    v.getContext().startActivity(intent);
+
+                    detailFragment.setArguments(bundle);
+
+                    Log.d(TAG, "Doc to be fetched's id: " + result.getId());
+
+                    // Replace the current fragment with the new one
+                    FragmentTransaction transaction = getActivity()
+                            .getSupportFragmentManager()
+                            .beginTransaction();
+                    transaction.replace(R.id.fragment_container,
+                            detailFragment);
+                    transaction.addToBackStack(null);
+                    transaction.commit();
                 });
             } else {
                 Log.e(TAG,
