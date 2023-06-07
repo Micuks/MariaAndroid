@@ -1,6 +1,6 @@
 package com.wql_2020211597.mariaandroid.fragments;
 
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -29,6 +30,8 @@ import com.wql_2020211597.mariaandroid.searchservice.SearchService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -45,7 +48,19 @@ public class HomeFragment extends Fragment {
     private SearchResultsAdapter adapter;
 
     private String GetBackendUrl() {
-        return Config.getBackendUrl();
+        SharedPreferences sharedPref =
+                PreferenceManager.getDefaultSharedPreferences(
+                        getContext());
+        Map<String, ?> keys = sharedPref.getAll();
+
+        Object val = keys.get("backend_url");
+        if (val instanceof String) {
+            return (String) sharedPref.getString("backend_url",
+                    Config.getBackendUrl());
+        } else {
+            Log.e(TAG, "backend url is " + val);
+            return (String) Config.getBackendUrl();
+        }
     }
 
     @androidx.annotation.Nullable

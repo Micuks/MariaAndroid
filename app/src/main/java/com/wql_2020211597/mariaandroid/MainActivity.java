@@ -11,7 +11,7 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.wql_2020211597.mariaandroid.fragments.HomeFragment;
-import com.wql_2020211597.mariaandroid.fragments.SettingsFragment;
+import com.wql_2020211597.mariaandroid.fragments.HistoryFragment;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -43,8 +43,8 @@ public class MainActivity extends AppCompatActivity {
                     Fragment fragment;
                     if (item.getItemId() == R.id.navigation_home && !(currentFragment instanceof HomeFragment)) {
                         fragment = new HomeFragment();
-                    } else if (item.getItemId() == R.id.navigation_settings && !(currentFragment instanceof SettingsFragment)) {
-                        fragment = new SettingsFragment();
+                    } else if (item.getItemId() == R.id.navigation_settings && !(currentFragment instanceof HistoryFragment)) {
+                        fragment = new HistoryFragment();
                     } else {
                         return false;
                     }

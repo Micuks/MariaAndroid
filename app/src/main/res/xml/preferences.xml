@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-    <SwitchPreferenceCompat
-        android:defaultValue="http://10.128.170.37:9011"
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <EditTextPreference
+        app:defaultValue="http://10.128.170.37:9011"
         app:key="backend_url"
-        app:title="Backend Url" />
+        app:summary="Change the backend server address"
+        app:title="Backend Url"
+        app:useSimpleSummaryProvider="true" />
 </PreferenceScreen>

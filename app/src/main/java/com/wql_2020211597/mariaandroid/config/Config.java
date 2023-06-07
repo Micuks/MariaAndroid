@@ -1,5 +1,9 @@
 package com.wql_2020211597.mariaandroid.config;
 
+import android.content.SharedPreferences;
+
+import androidx.preference.PreferenceManager;
+
 public class Config {
     static private final String backendAddr = "http://10.128.170.37";
     static private final String backendPort = "9011";
