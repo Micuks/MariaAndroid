@@ -1,4 +1,4 @@
-package com.wql_2020211597.mariaandroid.searchservice;
+package com.wql_2020211597.mariaandroid.services;
 
 import com.wql_2020211597.mariaandroid.models.Document;
 

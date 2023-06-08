@@ -12,6 +12,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class HistoryStorage {
     private static final String TAG = "HistoryStorage";
@@ -25,12 +28,12 @@ public class HistoryStorage {
         // Use the application context. This can avoid memory leak.
         this.context = context.getApplicationContext();
         this.gson = new Gson();
-        this.historyList=loadHistory();
+        this.historyList = loadHistory();
     }
 
     public static synchronized HistoryStorage getInstance(Context context) {
-        if (instance==null){
-            instance=new HistoryStorage(context);
+        if (instance == null) {
+            instance = new HistoryStorage(context);
         }
         return instance;
     }
@@ -59,22 +62,39 @@ public class HistoryStorage {
         try {
             File file = new File(context.getFilesDir(), FILENAME);
             if (!file.exists()) {
+                Log.w(TAG, String.format(
+                        "History storage file %s doesn't " + "exist. " +
+                                "Creating" + " a new one.",
+                        FILENAME));
                 file.createNewFile();
-                return history;
             }
 
             FileInputStream fis = context.openFileInput(FILENAME);
-            byte[] bytes = new byte[(int) new File(FILENAME).length()];
+            byte[] bytes = new byte[(int) file.length()];
             fis.read(bytes);
             String json = new String(bytes);
             Type type = new TypeToken<ArrayList<HistoryEntry>>() {
             }.getType();
             history = gson.fromJson(json, type);
             fis.close();
+
+            // Sort the history in descending order of timestamps
+            Collections.sort(history, new Comparator<HistoryEntry>() {
+                @Override
+                public int compare(HistoryEntry o1, HistoryEntry o2) {
+                    return o2.getTimestamp().compareTo(o1.getTimestamp());
+                }
+            });
         } catch (Exception e) {
             Log.e(TAG, "Error loading history from json " + FILENAME);
             e.printStackTrace();
         }
-        return history == null ? new ArrayList<>() : history;
+
+        history = (history == null) ? new ArrayList<>() : history;
+
+        Log.i(TAG, String.format("Loaded %d history entries from disk",
+                history.size()));
+
+        return history;
     }
 }

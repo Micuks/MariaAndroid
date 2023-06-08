@@ -12,17 +12,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 
-import com.google.gson.Gson;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.wql_2020211597.mariaandroid.MainActivity;
 import com.wql_2020211597.mariaandroid.R;
 import com.wql_2020211597.mariaandroid.config.Config;
 import com.wql_2020211597.mariaandroid.models.Document;
-import com.wql_2020211597.mariaandroid.models.SearchResult;
-import com.wql_2020211597.mariaandroid.searchservice.DocumentService;
-import com.wql_2020211597.mariaandroid.viewmodels.HomeViewModel;
-
-import java.util.List;
+import com.wql_2020211597.mariaandroid.services.DocumentService;
 
 import retrofit2.Call;
 import retrofit2.Callback;

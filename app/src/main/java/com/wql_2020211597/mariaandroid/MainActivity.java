@@ -8,7 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
+import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Load the default fragment when activity is created
         currentFragment = new HomeFragment();
-        loadFragment(currentFragment);
+        loadFragment(currentFragment, "HomeFragment");
     }
 
     @Override
@@ -45,32 +45,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private NavigationBarView.OnItemSelectedListener onItemSelectedListener =
-            new NavigationBarView.OnItemSelectedListener() {
-                @Override
-                public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                    return loadFragmentController(item);
-                }
-            };
+            this::loadFragmentController;
 
     private boolean loadFragmentController(@NonNull MenuItem item) {
         Fragment fragment;
-        if (item.getItemId() == R.id.navigation_home && !(currentFragment instanceof HomeFragment)) {
-            fragment = new HomeFragment();
-        } else if (item.getItemId() == R.id.navigation_history && !(currentFragment instanceof HistoryFragment)) {
-            fragment = new HistoryFragment();
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        String homeFragmentTag = "HomeFragment";
+        String historyFragmentTag = "HistoryFragment";
+        String currTag;
+
+        if (item.getItemId() == R.id.navigation_home) {
+            currTag = homeFragmentTag;
+            fragment = fragmentManager.findFragmentByTag(currTag);
+            if (fragment == null || !(fragment instanceof HomeFragment)) {
+                fragment = new HomeFragment();
+            }
+        } else if (item.getItemId() == R.id.navigation_history) {
+            currTag = historyFragmentTag;
+            fragment = fragmentManager.findFragmentByTag(currTag);
+            if (fragment == null || !(fragment instanceof HistoryFragment)) {
+                fragment = new HistoryFragment();
+            }
         } else {
             return false;
         }
 
-        return loadFragment(fragment);
+        return loadFragment(fragment, currTag);
     }
 
-    private boolean loadFragment(Fragment fragment) {
+    private boolean loadFragment(Fragment fragment, String tag) {
         // Switching fragment
         if (fragment != null) {
             getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(R.id.fragment_container, fragment)
+                    .replace(R.id.fragment_container, fragment, tag)
                     .addToBackStack(null)
                     .commit();
             currentFragment = fragment;

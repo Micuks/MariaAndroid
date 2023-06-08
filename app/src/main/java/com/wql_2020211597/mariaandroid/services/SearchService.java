@@ -1,4 +1,4 @@
-package com.wql_2020211597.mariaandroid.searchservice;
+package com.wql_2020211597.mariaandroid.services;
 
 import com.wql_2020211597.mariaandroid.models.SearchResult;
 
@@ -10,5 +10,6 @@ import retrofit2.http.Query;
 
 public interface SearchService {
     @GET("/search")
-    Call<List<SearchResult>> search(@Query("q") String query, @Query("page") String page);
+    Call<List<SearchResult>> search(@Query("q") String query,
+                                    @Query("page") int page);
 }

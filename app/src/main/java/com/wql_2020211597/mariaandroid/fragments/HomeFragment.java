@@ -1,6 +1,5 @@
 package com.wql_2020211597.mariaandroid.fragments;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -17,9 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -29,13 +26,11 @@ import com.wql_2020211597.mariaandroid.history.HistoryStorage;
 import com.wql_2020211597.mariaandroid.models.Document;
 import com.wql_2020211597.mariaandroid.models.HistoryEntry;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
-import com.wql_2020211597.mariaandroid.searchservice.SearchService;
+import com.wql_2020211597.mariaandroid.services.SearchService;
 import com.wql_2020211597.mariaandroid.viewmodels.HomeViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -45,28 +40,13 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
+    private SearchService service;
     private HistoryStorage historyStorage;
     private EditText etSearch;
     private Button btnSearch;
     private RecyclerView rvResults;
     private SearchResultsAdapter adapter;
     private HomeViewModel homeViewModel;
-
-    private String GetBackendUrl() {
-        SharedPreferences sharedPref =
-                PreferenceManager.getDefaultSharedPreferences(
-                        getContext());
-        Map<String, ?> keys = sharedPref.getAll();
-
-        Object val = keys.get("backend_url");
-        if (val instanceof String) {
-            return (String) sharedPref.getString("backend_url",
-                    Config.getBackendUrl());
-        } else {
-            Log.e(TAG, "backend url is " + val);
-            return (String) Config.getBackendUrl();
-        }
-    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -93,12 +73,8 @@ public class HomeFragment extends Fragment {
                     .getSupportActionBar()
                     .setDisplayShowHomeEnabled(false);
         }
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getActivity().getSupportFragmentManager().popBackStack();
-            }
-        });
+        toolbar.setNavigationOnClickListener(
+                v -> getActivity().getSupportFragmentManager().popBackStack());
 
         // Load HistoryStorage
         historyStorage = HistoryStorage.getInstance(getContext());
@@ -108,10 +84,8 @@ public class HomeFragment extends Fragment {
         btnSearch = view.findViewById(R.id.btnSearch);
 
         // Initialize adapter
-        adapter =
-                new SearchResultsAdapter(homeViewModel
-                        .getResults()
-                        .getValue() != null ? homeViewModel
+        adapter = new SearchResultsAdapter(
+                homeViewModel.getResults().getValue() != null ? homeViewModel
                         .getResults()
                         .getValue() : new ArrayList<>());
 
@@ -120,81 +94,36 @@ public class HomeFragment extends Fragment {
         rvResults.setLayoutManager(new LinearLayoutManager(getContext()));
         rvResults.setAdapter(adapter); // Bind adapter
 
-        homeViewModel.getResults().observe(getViewLifecycleOwner(),
-                new Observer<List<SearchResult>>() {
-                    @Override
-                    public void onChanged(List<SearchResult> results) {
-                        adapter.updateResults(results);
-                    }
-                });
+        homeViewModel.getResults().observe(getViewLifecycleOwner(), results -> {
+            adapter.updateResults(results);
+        });
 
-        // Network communication related
+        // Initialize search service
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(GetBackendUrl())
+                .baseUrl(Config.getBackendUrl())
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        SearchService service = retrofit.create(SearchService.class);
-        btnSearch.setOnClickListener(new SearchButtonClickListener(service));
+        service = retrofit.create(SearchService.class);
+
+        btnSearch.setOnClickListener(new SearchButtonClickListener());
 
         // Return the flated view
         return view;
     }
 
     private class SearchButtonClickListener implements View.OnClickListener {
-        private final SearchService service;
 
-        SearchButtonClickListener(SearchService service) {
-            this.service = service;
+        SearchButtonClickListener() {
         }
 
         @Override
         public void onClick(View v) {
             String query = etSearch.getText().toString();
-            String page = "1"; // FIXME: adaptive page number
-            Log.d(TAG, String.format("Query[%s], Page[%s]", query, page));
-            Call<List<SearchResult>> call = service.search(query, page);
+            int page = 1; // FIXME: adaptive page number
+            Log.d(TAG, String.format("Query[%s], Page[%d]", query, page));
 
-            call.enqueue(new SearchCallback(query));
-        }
-    }
-
-    private class SearchCallback implements Callback<List<SearchResult>> {
-        private final String query;
-
-        SearchCallback(String query) {
-            this.query = query;
-        }
-
-        @Override
-        public void onResponse(Call<List<SearchResult>> call,
-                               Response<List<SearchResult>> response) {
-            if (response.isSuccessful()) {
-                List<SearchResult> results = response.body();
-                Log.d(TAG, String.format("Got [%d] results: %s", results.size(),
-                        results.toString()));
-
-                // Save search to history
-                historyStorage.add(new HistoryEntry(query));
-
-                // Update the adapter with the search results
-                adapter.updateResults(results);
-
-                // Update search results in view model
-                homeViewModel.setResults(results);
-
-            } else {
-                // Handle error
-                Log.e(TAG, String.format(
-                        "Failed to fetch response, status code[%d]",
-                        response.code()));
-                Log.e(TAG,
-                        String.format("Error message: %s", response.message()));
-            }
-        }
-
-        @Override
-        public void onFailure(Call<List<SearchResult>> call, Throwable t) {
-            Log.e(TAG, "Search request failed", t);
+            homeViewModel.search(service, query, page);
+            historyStorage.add(new HistoryEntry(query));
         }
     }
 
@@ -287,8 +216,7 @@ public class HomeFragment extends Fragment {
                     transaction.commit();
                 });
             } else {
-                Log.e(TAG,
-                        "Received null document in result: " + result.toString());
+                Log.e(TAG, "Received null document in result: " + result);
             }
         }
     }

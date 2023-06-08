@@ -1,29 +1,39 @@
 package com.wql_2020211597.mariaandroid.fragments;
 
+import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.wql_2020211597.mariaandroid.R;
+import com.wql_2020211597.mariaandroid.config.Config;
 import com.wql_2020211597.mariaandroid.history.HistoryStorage;
 import com.wql_2020211597.mariaandroid.models.HistoryEntry;
+import com.wql_2020211597.mariaandroid.services.SearchService;
 import com.wql_2020211597.mariaandroid.viewmodels.HomeViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class HistoryFragment extends Fragment {
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+public class HistoryFragment extends Fragment implements OnEntryClickListener {
+    private static int default_page = 1;
+    private SearchService service;
     private static final String TAG = "HistoryFragment";
     private HomeViewModel homeViewModel;
     private HistoryStorage historyStorage;
@@ -33,6 +43,7 @@ public class HistoryFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
     }
 
     @Nullable
@@ -45,6 +56,7 @@ public class HistoryFragment extends Fragment {
 
         Toolbar toolbar = view.findViewById(R.id.historyToolbar);
         rvHistory = view.findViewById(R.id.rvHistory);
+
         ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
 
         // Hide the back button
@@ -60,35 +72,61 @@ public class HistoryFragment extends Fragment {
                     .setTitle("Search History");
         }
 
+        // Initialize HistoryStorage
         historyStorage = HistoryStorage.getInstance(getContext());
-
         ArrayList<HistoryEntry> history = historyStorage.loadHistory();
-        HistoryAdapter adapter = new HistoryAdapter(
-                history);
+
+        // Initialize adapter with this Fragment as the click listener
+        adapter = new HistoryAdapter(history, this);
+
+        // Initialize the RecycleView
+        rvHistory.setLayoutManager(new LinearLayoutManager(getContext()));
         rvHistory.setAdapter(adapter);
+
+        // Initialize Search service
+        Retrofit retrofit =
+                new Retrofit.Builder().baseUrl(Config.getBackendUrl()).addConverterFactory(
+                        GsonConverterFactory.create()).build();
+        service = retrofit.create(SearchService.class);
 
         return view;
     }
 
+    @Override
+    public void onEntryClick(String query, int page) {
+        // Handle the click event, and perform a search with the query
+        homeViewModel.search(service, query, page);
+    }
+
     private class HistoryAdapter extends RecyclerView.Adapter<HistoryViewHolder> {
         private List<HistoryEntry> history;
+        private OnEntryClickListener onEntryClickListener;
 
-        HistoryAdapter(List<HistoryEntry> history) {
+        HistoryAdapter(List<HistoryEntry> history,
+                       OnEntryClickListener listener) {
             this.history = history;
+            this.onEntryClickListener = listener;
+
+            Log.d(TAG, String.format(
+                    "HistoryAdapter initialized with %d " + "history entries",
+                    history.size()));
         }
 
         @NonNull
         @Override
         public HistoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent
                 , int viewType) {
-            View view =
-                    LayoutInflater.from(parent.getContext()).inflate(R.layout.item_history, parent, false);
-            return  new HistoryViewHolder(view);
+            View view = LayoutInflater
+                    .from(parent.getContext())
+                    .inflate(R.layout.item_history, parent, false);
+            return new HistoryViewHolder(view, onEntryClickListener);
         }
 
         @Override
         public void onBindViewHolder(@NonNull HistoryViewHolder holder,
                                      int position) {
+            Log.d(TAG, String.format("onBindViewHolder called, position[%d]",
+                    position));
             holder.bind(history.get(position));
         }
 
@@ -98,16 +136,40 @@ public class HistoryFragment extends Fragment {
         }
     }
 
-    private class HistoryViewHolder extends RecyclerView.ViewHolder{
+    private class HistoryViewHolder extends RecyclerView.ViewHolder {
         TextView tvQuery;
+        TextView tvTimeStamp;
+        CardView cardView;
+        OnEntryClickListener listener;
 
-        HistoryViewHolder(@NonNull View itemView) {
+        HistoryViewHolder(@NonNull View itemView,
+                          OnEntryClickListener listener) {
             super(itemView);
+            cardView = itemView.findViewById(R.id.history_card_view);
             tvQuery = itemView.findViewById(R.id.tvQuery);
+            tvTimeStamp = itemView.findViewById(R.id.tvTimeStamp);
+            this.listener = listener;
         }
 
         void bind(HistoryEntry entry) {
-            tvQuery.setText(entry.getQuery());;
+            Log.d(TAG, String.format("Binding query[%s] to ViewHolder",
+                    entry.getQuery()));
+            tvQuery.setText(entry.getQuery());
+            tvTimeStamp.setText(entry.getTimestamp().toString());
+
+            // Alternating background colors
+            if (getAdapterPosition() % 2 == 0) {
+                itemView.setBackgroundColor(Color.parseColor("#F8F8F8"));//
+                // Light gray
+            } else {
+                itemView.setBackgroundColor(Color.parseColor("#FFFFFF"));//
+                // White
+            }
+
+            cardView.setOnClickListener(v -> {
+                // Perform a search with click, default page 1
+                listener.onEntryClick(entry.getQuery(), default_page);
+            });
         }
     }
 }
