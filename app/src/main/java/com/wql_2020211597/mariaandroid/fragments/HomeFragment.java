@@ -1,7 +1,13 @@
 package com.wql_2020211597.mariaandroid.fragments;
 
+import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,12 +18,15 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.loader.content.CursorLoader;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -29,12 +38,20 @@ import com.wql_2020211597.mariaandroid.history.HistoryStorage;
 import com.wql_2020211597.mariaandroid.models.Document;
 import com.wql_2020211597.mariaandroid.models.HistoryEntry;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
+import com.wql_2020211597.mariaandroid.models.Status;
+import com.wql_2020211597.mariaandroid.services.FileUtils;
+import com.wql_2020211597.mariaandroid.services.ImageSearchResponse;
 import com.wql_2020211597.mariaandroid.services.SearchService;
 import com.wql_2020211597.mariaandroid.viewmodels.HomeViewModel;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -45,9 +62,11 @@ public class HomeFragment extends Fragment {
     private ProgressBar progressBar;
     private EditText etSearch;
     private Button btnSearch;
+    private Button btnSearchImage;
     private RecyclerView rvResults;
     private SearchResultsAdapter adapter;
     private HomeViewModel homeViewModel;
+    public static final int PICK_IMAGE = 1;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -93,11 +112,7 @@ public class HomeFragment extends Fragment {
         // Load HistoryStorage
         historyStorage = HistoryStorage.getInstance(getContext());
 
-        // Initlalize search zone
-        etSearch = view.findViewById(R.id.etSearch);
-        btnSearch = view.findViewById(R.id.btnSearch);
-
-        // Initialize adapter
+        // Initialize search results adapter
         adapter = new SearchResultsAdapter(
                 homeViewModel.getResults().getValue() != null ? homeViewModel
                         .getResults()
@@ -133,6 +148,12 @@ public class HomeFragment extends Fragment {
                 .build();
         service = retrofit.create(SearchService.class);
 
+        // Initlalize search zone
+        etSearch = view.findViewById(R.id.etSearch);
+        btnSearch = view.findViewById(R.id.btnSearch);
+        btnSearchImage = view.findViewById(R.id.btnSearchImage);
+
+        // Trigger search by text
         btnSearch.setOnClickListener(v -> {
             String query = etSearch.getText().toString();
             int page = 1; // FIXME: adaptive page number
@@ -142,9 +163,65 @@ public class HomeFragment extends Fragment {
             historyStorage.add(new HistoryEntry(query));
         });
 
+        // Trigger search by image
+        btnSearchImage.setOnClickListener(v -> {
+            Intent pickPhoto = new Intent(Intent.ACTION_PICK,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            pickImageLauncher.launch(pickPhoto);
+        });
+
         // Return the flated view
         return view;
     }
+
+
+    private final ActivityResultLauncher<Intent> pickImageLauncher =
+            registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Uri selectedImage = result.getData().getData();
+                    if (selectedImage != null) {
+                        // Convert Uri to File, send to server
+                        searchByImage(selectedImage);
+                    }
+                }
+            });
+
+    private void searchByImage(Uri imageUri) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            homeViewModel
+                    .searchByImage(getContext(), service, imageUri)
+                    .observe(getViewLifecycleOwner(),
+                            imageSearchResponseResource -> {
+                                if (imageSearchResponseResource.status == Status.SUCCESS) {
+                                    ImageSearchResponse response =
+                                            imageSearchResponseResource.data;
+                                    // Do something with resonse
+                                } else if (imageSearchResponseResource.status == Status.ERROR) {
+                                    Log.e(TAG, String.format(
+                                            "Error while doing " + "search " +
+                                                    "by" + " " + "image: %s",
+                                            imageSearchResponseResource.message));
+                                } else if (imageSearchResponseResource.status == Status.LOADING) {
+                                    // Nothing to do here
+                                }
+                            });
+        } else {
+            Log.e(TAG, String.format("Error: API version too low"));
+        }
+    }
+
+    private final ActivityResultLauncher<Intent> captureImageLauncher =
+            registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Bundle extras = result.getData().getExtras();
+                    Bitmap imageBitMap = (Bitmap) extras.get("data");
+                    // TODO: Convert this imageBitMap to File, and
+                    //  send to
+                    //  server
+                }
+            });
 
     private class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsViewHolder> {
         private List<SearchResult> results;

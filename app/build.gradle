@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId 'com.wql_2020211597.mariaandroid'
-        minSdk 24
+        minSdk 33
         targetSdk 33
         versionCode 1
         versionName "1.0"
@@ -25,6 +25,10 @@ android {
 
     buildFeatures {
         viewBinding true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_9
+        targetCompatibility JavaVersion.VERSION_1_9
     }
 }
 
