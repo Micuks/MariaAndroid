@@ -177,15 +177,16 @@ public class HomeFragment extends Fragment {
 
     private final ActivityResultLauncher<Intent> pickImageLauncher =
             registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Uri selectedImage = result.getData().getData();
-                    if (selectedImage != null) {
-                        // Convert Uri to File, send to server
-                        searchByImage(selectedImage);
-                    }
-                }
-            });
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            Uri selectedImage = result.getData().getData();
+                            if (selectedImage != null) {
+                                // Convert Uri to File, send to server
+                                searchByImage(selectedImage);
+                            }
+                        }
+                    });
 
     private void searchByImage(Uri imageUri) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -196,7 +197,11 @@ public class HomeFragment extends Fragment {
                                 if (imageSearchResponseResource.status == Status.SUCCESS) {
                                     ImageSearchResponse response =
                                             imageSearchResponseResource.data;
-                                    // Do something with resonse
+                                    adapter.updateResults(response.results);
+                                    etSearch.setText(response.keywords);
+                                    // Save query to history
+                                    historyStorage.add(new HistoryEntry(
+                                            response.keywords));
                                 } else if (imageSearchResponseResource.status == Status.ERROR) {
                                     Log.e(TAG, String.format(
                                             "Error while doing " + "search " +
@@ -213,15 +218,16 @@ public class HomeFragment extends Fragment {
 
     private final ActivityResultLauncher<Intent> captureImageLauncher =
             registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Bundle extras = result.getData().getExtras();
-                    Bitmap imageBitMap = (Bitmap) extras.get("data");
-                    // TODO: Convert this imageBitMap to File, and
-                    //  send to
-                    //  server
-                }
-            });
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            Bundle extras = result.getData().getExtras();
+                            Bitmap imageBitMap = (Bitmap) extras.get("data");
+                            // TODO: Convert this imageBitMap to File, and
+                            //  send to
+                            //  server
+                        }
+                    });
 
     private class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsViewHolder> {
         private List<SearchResult> results;

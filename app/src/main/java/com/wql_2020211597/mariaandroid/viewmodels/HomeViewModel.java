@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModel;
 
 import com.wql_2020211597.mariaandroid.models.Resource;
 import com.wql_2020211597.mariaandroid.models.SearchResult;
+import com.wql_2020211597.mariaandroid.models.Status;
 import com.wql_2020211597.mariaandroid.services.ImageSearchResponse;
 import com.wql_2020211597.mariaandroid.services.SearchService;
 
@@ -118,7 +119,15 @@ public class HomeViewModel extends ViewModel {
                                    Response<ImageSearchResponse> response) {
                 if (response.isSuccessful()) {
                     result.setValue(Resource.success(response.body()));
+                    Resource<ImageSearchResponse> results =
+                            Resource.success(response.body());
+                    searchByImageResult.setValue(results);
                 } else {
+                    isLoading.setValue(false);
+                    searchByImageResult.setValue(Resource.error(
+                            String.format("Error: %s", response.message()),
+                            null));
+
                     result.setValue(Resource.error(
                             String.format("Error: %s", response.message()),
                             null));

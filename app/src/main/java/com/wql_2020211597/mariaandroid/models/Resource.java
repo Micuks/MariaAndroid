@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.wql_2020211597.mariaandroid.R;
+import com.wql_2020211597.mariaandroid.services.ImageSearchResponse;
 
 public class Resource<T> {
     @NonNull
