@@ -1,5 +1,6 @@
 package com.wql_2020211597.mariaandroid.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -8,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -15,11 +17,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.wql_2020211597.mariaandroid.DetailActivity;
+import com.wql_2020211597.mariaandroid.MainActivity;
 import com.wql_2020211597.mariaandroid.R;
 import com.wql_2020211597.mariaandroid.config.Config;
 import com.wql_2020211597.mariaandroid.history.HistoryStorage;
@@ -32,9 +35,6 @@ import com.wql_2020211597.mariaandroid.viewmodels.HomeViewModel;
 import java.util.ArrayList;
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -42,6 +42,7 @@ public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
     private SearchService service;
     private HistoryStorage historyStorage;
+    private ProgressBar progressBar;
     private EditText etSearch;
     private Button btnSearch;
     private RecyclerView rvResults;
@@ -52,7 +53,8 @@ public class HomeFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Get home view model, which saves search result status
-        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
+        homeViewModel = new ViewModelProvider(requireActivity()).get(
+                HomeViewModel.class);
     }
 
     @androidx.annotation.Nullable
@@ -63,6 +65,18 @@ public class HomeFragment extends Fragment {
 
         Toolbar toolbar = view.findViewById(R.id.homeToolbar);
         ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
+
+        // Progress bar
+        progressBar = view.findViewById(R.id.prograssBar);
+        homeViewModel
+                .getIsLoading()
+                .observe(getViewLifecycleOwner(), aBoolean -> {
+                    if (aBoolean) {
+                        progressBar.setVisibility(View.VISIBLE);
+                    } else {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                });
 
         // Hide the back button
         if (((AppCompatActivity) getActivity()).getSupportActionBar() != null) {
@@ -94,9 +108,23 @@ public class HomeFragment extends Fragment {
         rvResults.setLayoutManager(new LinearLayoutManager(getContext()));
         rvResults.setAdapter(adapter); // Bind adapter
 
+        // HomeViewModel observers. Observes search results modifications and
+        // historyQuery modification
         homeViewModel.getResults().observe(getViewLifecycleOwner(), results -> {
             adapter.updateResults(results);
         });
+        homeViewModel
+                .getHistoryQuery()
+                .observe(getViewLifecycleOwner(), query -> {
+                    if (!query.isEmpty()) {
+                        // Perform the search
+                        homeViewModel.search(service, query, 1, null);
+                        // Update etSearch text
+                        setEtSearchText(query);
+                        // Clear historyQuery after using it
+                        homeViewModel.getHistoryQuery().setValue("");
+                    }
+                });
 
         // Initialize search service
         Retrofit retrofit = new Retrofit.Builder()
@@ -105,26 +133,17 @@ public class HomeFragment extends Fragment {
                 .build();
         service = retrofit.create(SearchService.class);
 
-        btnSearch.setOnClickListener(new SearchButtonClickListener());
-
-        // Return the flated view
-        return view;
-    }
-
-    private class SearchButtonClickListener implements View.OnClickListener {
-
-        SearchButtonClickListener() {
-        }
-
-        @Override
-        public void onClick(View v) {
+        btnSearch.setOnClickListener(v -> {
             String query = etSearch.getText().toString();
             int page = 1; // FIXME: adaptive page number
             Log.d(TAG, String.format("Query[%s], Page[%d]", query, page));
 
-            homeViewModel.search(service, query, page);
+            homeViewModel.search(service, query, page, null);
             historyStorage.add(new HistoryEntry(query));
-        }
+        });
+
+        // Return the flated view
+        return view;
     }
 
     private class SearchResultsAdapter extends RecyclerView.Adapter<SearchResultsViewHolder> {
@@ -192,28 +211,18 @@ public class HomeFragment extends Fragment {
                 tvScore.setText(String.valueOf(result.getScore()));
 
                 tvTitle.setOnClickListener(v -> {
-                    DetailFragment detailFragment = new DetailFragment();
-
                     // Pass data using Bundle
-                    Bundle bundle = new Bundle();
-                    bundle.putString("docId", result.getId());
-                    bundle.putString("docTitle", Html
+                    Intent intent = new Intent((MainActivity) getActivity(),
+                            DetailActivity.class);
+                    intent.putExtra("docId", result.getId());
+                    intent.putExtra("docTitle", Html
                             .fromHtml(result.getDoc().getTitle(),
                                     Html.FROM_HTML_MODE_COMPACT)
                             .toString());
 
-                    detailFragment.setArguments(bundle);
-
                     Log.d(TAG, "Doc to be fetched's id: " + result.getId());
 
-                    // Replace the current fragment with the new one
-                    FragmentTransaction transaction = getActivity()
-                            .getSupportFragmentManager()
-                            .beginTransaction();
-                    transaction.replace(R.id.fragment_container,
-                            detailFragment);
-                    transaction.addToBackStack(null);
-                    transaction.commit();
+                    startActivity(intent);
                 });
             } else {
                 Log.e(TAG, "Received null document in result: " + result);
@@ -221,4 +230,7 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    public void setEtSearchText(String text) {
+        etSearch.setText(text);
+    }
 }

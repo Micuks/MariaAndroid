@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".fragments.DetailFragment">
+    tools:context=".DetailActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/detailToolbar"
@@ -13,28 +13,22 @@
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
         android:elevation="4dp"
-        app:layout_constraintBottom_toTopOf="@id/detailToolbar"
+        app:layout_constraintBottom_toTopOf="@id/detailScrollView"
         app:layout_constraintTop_toTopOf="parent"
         app:popupTheme="@style/Theme.AppCompat.Light" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:id="@+id/detailScrollView"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/detailToolbar">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
             android:orientation="vertical"
             android:padding="16dp">
-
-            <WebView
-                android:id="@+id/wvDetailTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="24sp"
-                android:textStyle="bold" />
 
             <WebView
                 android:id="@+id/wvDetailContent"

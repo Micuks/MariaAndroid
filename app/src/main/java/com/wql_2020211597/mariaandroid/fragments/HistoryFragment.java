@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -14,10 +15,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.wql_2020211597.mariaandroid.MainActivity;
 import com.wql_2020211597.mariaandroid.R;
 import com.wql_2020211597.mariaandroid.config.Config;
 import com.wql_2020211597.mariaandroid.history.HistoryStorage;
@@ -43,7 +48,8 @@ public class HistoryFragment extends Fragment implements OnEntryClickListener {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
+        homeViewModel = new ViewModelProvider(requireActivity()).get(
+                HomeViewModel.class);
     }
 
     @Nullable
@@ -55,8 +61,6 @@ public class HistoryFragment extends Fragment implements OnEntryClickListener {
                 false);
 
         Toolbar toolbar = view.findViewById(R.id.historyToolbar);
-        rvHistory = view.findViewById(R.id.rvHistory);
-
         ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
 
         // Hide the back button
@@ -80,13 +84,15 @@ public class HistoryFragment extends Fragment implements OnEntryClickListener {
         adapter = new HistoryAdapter(history, this);
 
         // Initialize the RecycleView
+        rvHistory = view.findViewById(R.id.rvHistory);
         rvHistory.setLayoutManager(new LinearLayoutManager(getContext()));
         rvHistory.setAdapter(adapter);
 
         // Initialize Search service
-        Retrofit retrofit =
-                new Retrofit.Builder().baseUrl(Config.getBackendUrl()).addConverterFactory(
-                        GsonConverterFactory.create()).build();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(Config.getBackendUrl())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
         service = retrofit.create(SearchService.class);
 
         return view;
@@ -94,8 +100,14 @@ public class HistoryFragment extends Fragment implements OnEntryClickListener {
 
     @Override
     public void onEntryClick(String query, int page) {
-        // Handle the click event, and perform a search with the query
-        homeViewModel.search(service, query, page);
+        // Update the historyQuery in the ViewModel
+        homeViewModel.getHistoryQuery().setValue(query);
+        MainActivity mainActivity = (MainActivity) getActivity();
+        if (mainActivity != null) {
+            BottomNavigationView navigationView = mainActivity.findViewById(
+                    R.id.bottom_navigation);
+            navigationView.setSelectedItemId(R.id.navigation_home);
+        }
     }
 
     private class HistoryAdapter extends RecyclerView.Adapter<HistoryViewHolder> {

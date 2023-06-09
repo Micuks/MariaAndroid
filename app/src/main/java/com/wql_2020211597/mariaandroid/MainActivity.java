@@ -45,25 +45,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private NavigationBarView.OnItemSelectedListener onItemSelectedListener =
-            this::loadFragmentController;
+            this::menuLoadFragmentController;
 
-    private boolean loadFragmentController(@NonNull MenuItem item) {
+    public boolean menuLoadFragmentController(@NonNull MenuItem item) {
+        return loadFragmentController(item.getItemId());
+    }
+
+    public boolean loadFragmentController(int itemId) {
         Fragment fragment;
         FragmentManager fragmentManager = getSupportFragmentManager();
         String homeFragmentTag = "HomeFragment";
         String historyFragmentTag = "HistoryFragment";
         String currTag;
 
-        if (item.getItemId() == R.id.navigation_home) {
+        if (itemId == R.id.navigation_home) {
             currTag = homeFragmentTag;
             fragment = fragmentManager.findFragmentByTag(currTag);
-            if (fragment == null || !(fragment instanceof HomeFragment)) {
+            if (!(fragment instanceof HomeFragment)) {
                 fragment = new HomeFragment();
             }
-        } else if (item.getItemId() == R.id.navigation_history) {
+        } else if (itemId == R.id.navigation_history) {
             currTag = historyFragmentTag;
             fragment = fragmentManager.findFragmentByTag(currTag);
-            if (fragment == null || !(fragment instanceof HistoryFragment)) {
+            if (!(fragment instanceof HistoryFragment)) {
                 fragment = new HistoryFragment();
             }
         } else {
@@ -89,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (loadFragmentController(item)) {
+        if (menuLoadFragmentController(item)) {
             return true;
         }
         return super.onOptionsItemSelected(item);
